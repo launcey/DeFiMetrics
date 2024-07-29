@@ -1,0 +1,71 @@
+import requests
+import pandas as pd
+import matplotlib.pyplot as plt
+
+class DeFiMetrics:
+    def __init__(self):
+        self.api_url = 'https://api.coingecko.com/api/v3'
+
+    def get_defi_protocols(self):
+        """Fetches a list of DeFi protocols."""
+        url = f"{self.api_url}/defi"
+        response = requests.get(url)
+        return response.json()
+
+    def get_defi_protocol_tvl(self, protocol_id: str) -> dict:
+        """Fetches total value locked (TVL) for a specific DeFi protocol."""
+        url = f"{self.api_url}/defi/{protocol_id}/metrics"
+        response = requests.get(url)
+        return response.json().get('data', {})
+
+    def analyze_defi_metrics(self, protocol_id: str) -> dict:
+        """Analyzes metrics such as TVL for a specific DeFi protocol."""
+        metrics = self.get_defi_protocol_tvl(protocol_id)
+        if not metrics:
+            return {
+                'protocol_id': protocol_id,
+                'total_value_locked': 0
+            }
+        total_value_locked = metrics.get('total_value_locked', 0)
+        return {
+            'protocol_id': protocol_id,
+            'total_value_locked': total_value_locked
+        }
+
+    def plot_defi_metrics(self, protocol_id: str):
+        """Plots the total value locked (TVL) for a specific DeFi protocol over time."""
+        metrics = self.get_defi_protocol_tvl(protocol_id)
+        if not metrics or 'history' not in metrics:
+            print("No TVL data found.")
+            return
+
+        history = metrics['history']
+        df = pd.DataFrame(history)
+        df['timestamp'] = pd.to_datetime(df['timestamp'], unit='s')
+        df.set_index('timestamp', inplace=True)
+
+        plt.figure(figsize=(12, 6))
+        df['total_value_locked'].plot()
+        plt.title(f'Total Value Locked (TVL) for Protocol {protocol_id}')
+        plt.xlabel('Date')
+        plt.ylabel('Total Value Locked (USD)')
+        plt.grid(True)
+        plt.show()
+
+# Example Usage
+if __name__ == "__main__":
+    defi_metrics = DeFiMetrics()
+
+    # Fetch and Display DeFi Protocols
+    defi_protocols = defi_metrics.get_defi_protocols()
+    print("DeFi Protocols:")
+    for protocol in defi_protocols:
+        print(protocol)
+
+    # Analyze and Plot DeFi Metrics
+    protocol_id = 'uniswap'  # Replace with the protocol ID you want to analyze
+    metrics = defi_metrics.analyze_defi_metrics(protocol_id)
+    print(f"Metrics for protocol {protocol_id}:")
+    print(metrics)
+    
+    defi_metrics.plot_defi_metrics(protocol_id=protocol_id)
